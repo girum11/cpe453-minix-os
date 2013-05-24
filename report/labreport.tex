@@ -86,7 +86,7 @@ Live version available \href{https://github.com/the-real-girum/cpe453-minix-os}{
 \subsection{Problems encountered}
 \begin{itemize}
 \item I couldn't compile Minix locally. Eclipse thus wouldn't work for this project. This was because Minix doesn't use standard \texttt{gmake} for its Makefiles. Instead, Minix uses some unknown custom \texttt{make} utility that includes a ton of conditional logic used to auto generate parts of the Makefiles. In the end, I couldn't manage to move Minix's version of \texttt{make} over to my local machine. 
-\item Right as I began coding (after 6 hours of reading, config and more reading), my \texttt{getnucred(2)} call refused to work properly. I'm passing it the from \texttt{m\_source} from the \texttt{message *} passed in via the framework, and fill up a \texttt{struct ucred} initialized on the runtime stack. The PID outputs "7" when it should be 697, and both the UID and GID output "0". What's worse, this output is consistent across both of my user accounts.
+\item Right as I began coding (after 6 hours of reading, config and more reading), my \texttt{getnucred(2)} call refused to work properly. I'm passing it the from \texttt{m\_source} from the \texttt{message *} passed in via the framework, and fill up a \texttt{struct ucred} initialized on the runtime stack. The UID is correctly "0" when the root user uses my Secret device, but it the UID is still "0" when a non-root user uses the same Secret device. I can't disambiguate between users.
 
 \end{itemize}
 

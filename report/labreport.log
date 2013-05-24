@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.4-1.40.13 (TeX Live 2012) (format=pdflatex 2012.6.30)  24 MAY 2013 06:32
+This is pdfTeX, Version 3.1415926-2.4-1.40.13 (TeX Live 2012) (format=pdflatex 2012.6.30)  24 MAY 2013 06:46
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -269,7 +269,7 @@ LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10.95> not available
  [1
 
 {/usr/local/texlive/2012/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
-<figure1.png, id=17, 419.5675pt x 420.57124pt>
+<figure1.png, id=62, 419.5675pt x 420.57124pt>
 File: figure1.png Graphic file (type png)
  <use figure1.png>
 Package pdftex.def Info: figure1.png used on input line 80.
@@ -286,22 +286,15 @@ Package atveryend Info: Empty hook `AfterLastShipout' on input line 111.
  (./labreport.aux)
 Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 111.
 Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 111.
-
-
-Package rerunfilecheck Warning: File `labreport.out' has changed.
-(rerunfilecheck)                Rerun to get outlines right
-(rerunfilecheck)                or use package `bookmark'.
-
-Package rerunfilecheck Info: Checksums for `labreport.out':
-(rerunfilecheck)             Before: D41D8CD98F00B204E9800998ECF8427E;0
-(rerunfilecheck)             After:  0D25C6C240E2271902F9C7F7A8B44C47;758.
+Package rerunfilecheck Info: File `labreport.out' has not changed.
+(rerunfilecheck)             Checksum: 0D25C6C240E2271902F9C7F7A8B44C47;758.
 Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 111.
  ) 
 Here is how much of TeX's memory you used:
- 5042 strings out of 493488
- 74878 string characters out of 3141326
- 155603 words of memory out of 3000000
- 8319 multiletter control sequences out of 15000+200000
+ 5055 strings out of 493488
+ 75047 string characters out of 3141326
+ 155707 words of memory out of 3000000
+ 8332 multiletter control sequences out of 15000+200000
  5681 words of font info for 22 fonts, out of 3000000 for 9000
  957 hyphenation exceptions out of 8191
  29i,5n,28p,694b,382s stack positions out of 5000i,500n,10000p,200000b,50000s
@@ -309,10 +302,10 @@ Here is how much of TeX's memory you used:
 ></usr/local/texlive/2012/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb><
 /usr/local/texlive/2012/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></
 usr/local/texlive/2012/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb>
-Output written on labreport.pdf (4 pages, 85988 bytes).
+Output written on labreport.pdf (4 pages, 86293 bytes).
 PDF statistics:
- 61 PDF objects out of 1000 (max. 8388607)
- 49 compressed objects within 1 object stream
+ 98 PDF objects out of 1000 (max. 8388607)
+ 86 compressed objects within 1 object stream
  17 named destinations out of 1000 (max. 500000)
- 6 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 102 words of extra memory for PDF output out of 10000 (max. 10000000)
 
