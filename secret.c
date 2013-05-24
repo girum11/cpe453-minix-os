@@ -3,15 +3,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <minix/ds.h>
+#include <sys/ucred.h>
 #include "secret.h"
 
 /*
  * Function prototypes for the hello driver.
  */
-static int hello_open(message *m);
-static int hello_close(message *m);
-static struct device * hello_prepare(dev_t device);
-static int hello_transfer(endpoint_t endpt, int opcode, u64_t position,
+static int secret_open(message *m);
+static int secret_close(message *m);
+static struct device * secret_prepare(dev_t device);
+static int secret_transfer(endpoint_t endpt, int opcode, u64_t position,
         iovec_t *iov, unsigned int nr_req, endpoint_t user_endpt, unsigned int
         flags);
 
@@ -24,11 +25,11 @@ static int lu_state_restore(void);
 /* Entry points to the hello driver. */
 static struct chardriver hello_tab =
 {
-    hello_open,
-    hello_close,
+    secret_open,
+    secret_close,
     nop_ioctl,
-    hello_prepare,
-    hello_transfer,
+    secret_prepare,
+    secret_transfer,
     nop_cleanup,
     nop_alarm,
     nop_cancel,
@@ -42,32 +43,43 @@ static struct device hello_device;
 /** State variable to count the number of times the device has been opened. */
 static int open_counter;
 
-static int hello_open(message *UNUSED(m))
+/** Credentials for the current owner of this process. */
+static struct ucred owner;
+
+static int secret_open(message *m)
 {
-    printf("hello_open(). Called %d time(s).\n", ++open_counter);
+    struct ucred new_owner;
+
+    if ((getnucred(m->m_source, &new_owner)) != 0) {
+        perror("getnucred");
+        return -1;
+    }
+
+    printf("Opened secret. Caller's credentials are: \nPID: %d\nUID: %d\nGID: %d\n\n", new_owner.pid, new_owner.uid, new_owner.gid);
+
     return OK;
 }
 
-static int hello_close(message *UNUSED(m))
+static int secret_close(message *m)
 {
-    printf("hello_close()\n");
+    printf("secret_close()\n");
     return OK;
 }
 
-static struct device * hello_prepare(dev_t UNUSED(dev))
+static struct device * secret_prepare(dev_t UNUSED(dev))
 {
     hello_device.dv_base = make64(0, 0);
     hello_device.dv_size = make64(strlen(HELLO_MESSAGE), 0);
     return &hello_device;
 }
 
-static int hello_transfer(endpoint_t endpt, int opcode, u64_t position,
+static int secret_transfer(endpoint_t endpt, int opcode, u64_t position,
     iovec_t *iov, unsigned nr_req, endpoint_t UNUSED(user_endpt),
     unsigned int UNUSED(flags))
 {
     int bytes, ret;
 
-    printf("hello_transfer()\n");
+    printf("secret_transfer()\n");
 
     if (nr_req != 1)
     {
@@ -171,8 +183,16 @@ static int sef_cb_init(int type, sef_init_info_t *UNUSED(info))
     return OK;
 }
 
+static void clear_owner() {
+    owner.pid = -1;
+    owner.uid = -1;
+    owner.gid = -1;
+}
+
 int main(void)
 {
+    clear_owner();
+
     /*
      * Perform initialization.
      */
