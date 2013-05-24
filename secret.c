@@ -47,12 +47,15 @@ static struct chardriver hello_tab =
     NULL
 };
 
+typedef enum { false, true } bool;
+
 /** Represents the /dev/hello device. */
 static struct device hello_device;
 
 static char the_secret[SECRET_SIZE];
 static uid_t owner;
 static int open_file_descriptors;
+static bool secret_opened_for_reading;
 
 /** State variable to count the number of times the device has been opened. */
 static int open_counter;
@@ -118,6 +121,9 @@ static int hello_open(message *m)
                 // Set the Secret to be empty.
                 owner = -1;
 
+                // The Secret is now opened for reading
+                secret_opened_for_reading = true;
+
                 printf("Open file descriptors: %d\n", ++open_file_descriptors);
 
                 return OK;
@@ -152,11 +158,13 @@ static int hello_close(message *UNUSED(m))
 
     // TODO: If you just closed the last open file descriptor, clear
     // out the Secret.
-    if (open_file_descriptors == 0) {
+    if (open_file_descriptors == 0 && secret_opened_for_reading) {
         printf("Closed the last file descriptor; clearing the secret.\n");
         for (i = 0; i < SECRET_SIZE; i++) {
             the_secret[i] = '\0';
         }
+
+        secret_opened_for_reading = false;
     }
         
 
@@ -299,6 +307,7 @@ int main(void)
     int i = 0;
     owner = -1;
     open_file_descriptors = 0;
+    secret_opened_for_reading = false;
 
     for (i = 0; i < SECRET_SIZE; i++) {
         the_secret[i] = '\0';
