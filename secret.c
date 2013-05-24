@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <minix/ds.h>
-#include "hello.h"
+#include "secret.h"
 
 /*
  * Function prototypes for the hello driver.
