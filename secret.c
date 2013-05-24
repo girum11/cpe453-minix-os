@@ -52,6 +52,7 @@ static struct device hello_device;
 
 static char the_secret[SECRET_SIZE];
 static uid_t owner;
+static int open_file_descriptors;
 
 /** State variable to count the number of times the device has been opened. */
 static int open_counter;
@@ -83,12 +84,16 @@ static int hello_open(message *m)
 
             // Set the owner to be full
             owner = new_owner.uid;
+
+            printf("Open file descriptors: %d\n", ++open_file_descriptors);
             
             return OK;
 
         // READ_ONLY mode on an empty Secret.
         case O_RDONLY:
             fprintf(stderr, "UID %d opened an Empty Secret in READ_ONLY mode.\n", new_owner.uid);
+
+            printf("Open file descriptors: %d\n", ++open_file_descriptors);
 
             // do nothing.
             return OK;
@@ -112,6 +117,8 @@ static int hello_open(message *m)
 
                 // Set the Secret to be empty.
                 owner = -1;
+
+                printf("Open file descriptors: %d\n", ++open_file_descriptors);
 
                 return OK;
             }
@@ -138,7 +145,21 @@ static int hello_open(message *m)
 
 static int hello_close(message *UNUSED(m))
 {
+    int i = 0;
     printf("hello_close()\n");
+
+    printf("Open file descriptors: %d\n", --open_file_descriptors);
+
+    // TODO: If you just closed the last open file descriptor, clear
+    // out the Secret.
+    if (open_file_descriptors == 0) {
+        printf("Closed the last file descriptor; clearing the secret.\n");
+        for (i = 0; i < SECRET_SIZE; i++) {
+            the_secret[i] = '\0';
+        }
+    }
+        
+
     return OK;
 }
 
@@ -150,7 +171,7 @@ static struct device *hello_prepare(dev_t UNUSED(dev))
 }
 
 static int hello_transfer(endpoint_t endpt, int opcode, u64_t position,
-    iovec_t *iov, unsigned nr_req, endpoint_t UNUSED(user_endpt),
+    iovec_t *iov, unsigned nr_req, endpoint_t user_endpt,
     unsigned int UNUSED(flags))
 {
     int bytes, ret;
@@ -172,11 +193,25 @@ static int hello_transfer(endpoint_t endpt, int opcode, u64_t position,
     }
     switch (opcode)
     {
+        case DEV_SCATTER_S:
+
+            printf("transfer() WRITE...\n");
+            ret = sys_safecopyfrom(user_endpt, (cp_grant_id_t) iov->iov_addr, 0, (vir_bytes) (the_secret + ex64lo(position)), bytes);
+            iov->iov_size += bytes;
+
+            printf("the secret: %s\n", the_secret);
+
+            break;
         case DEV_GATHER_S:
+
+            printf("transfer() READ...\n");
             ret = sys_safecopyto(endpt, (cp_grant_id_t) iov->iov_addr, 0,
-                                (vir_bytes) (HELLO_MESSAGE + ex64lo(position)),
+                                (vir_bytes) (the_secret + ex64lo(position)),
                                  bytes);
             iov->iov_size -= bytes;
+
+            printf("the secret: %s\n", the_secret);
+
             break;
 
         default:
@@ -261,7 +296,13 @@ static int sef_cb_init(int type, sef_init_info_t *UNUSED(info))
 
 int main(void)
 {
+    int i = 0;
     owner = -1;
+    open_file_descriptors = 0;
+
+    for (i = 0; i < SECRET_SIZE; i++) {
+        the_secret[i] = '\0';
+    }
 
     /*
      * Perform initialization.
