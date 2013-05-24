@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <minix/ds.h>
+#include <sys/ucred.h>
 #include "secret.h"
 
 /*
@@ -42,9 +43,23 @@ static struct device hello_device;
 /** State variable to count the number of times the device has been opened. */
 static int open_counter;
 
-static int hello_open(message *UNUSED(m))
+static int hello_open(message *m)
 {
-    printf("hello_open(). Called %d time(s).\n", ++open_counter);
+    struct ucred owner;
+
+    owner.uid = 42;
+
+    if (getnucred(m->USER_ENDPT, &owner) != 0) {
+        perror("getnucred");
+        return -1;
+    }
+
+    printf("hello_open() called by UID: %d. Called %d time(s).\n", owner.uid, ++open_counter);
+
+    printf("and yet, getuid() returned: %d\n", getuid());
+
+
+
     return OK;
 }
 
@@ -62,24 +77,12 @@ static struct device * hello_prepare(dev_t UNUSED(dev))
 }
 
 static int hello_transfer(endpoint_t endpt, int opcode, u64_t position,
-    iovec_t *iov, unsigned nr_req, endpoint_t user_endpt,
+    iovec_t *iov, unsigned nr_req, endpoint_t UNUSED(user_endpt),
     unsigned int UNUSED(flags))
 {
     int bytes, ret;
-    struct ucred ucred1, ucred2;
 
-    if (getnucred(endpt, &ucred1) != 0) {
-        perror("getnucred");
-        return -1;
-    }
-    if (getnucred(user_endpt, &ucred2) != 0) {
-        perror("getnucred");
-        return -1;
-    }
-
-    printf("hello_transfer(). endpt UID: %d, user_endpt UID: %d\n", ucred1.uid, ucred2.uid);
-
-
+    printf("hello_transfer()\n");
 
     if (nr_req != 1)
     {
