@@ -5,6 +5,7 @@
 #include <minix/ds.h>
 #include <sys/ucred.h>
 #include <minix/const.h>
+#include <minix/syslib.h>
 #include "secret.h"
 
 
@@ -12,6 +13,8 @@
 #define O_WRONLY 2
 #define O_RDONLY 4
 #define O_RDWR 6
+
+#define SECRET_SIZE 8192
 
 /*
  * Function prototypes for the hello driver.
@@ -47,6 +50,7 @@ static struct chardriver hello_tab =
 /** Represents the /dev/hello device. */
 static struct device hello_device;
 
+static char the_secret[SECRET_SIZE];
 static uid_t owner;
 
 /** State variable to count the number of times the device has been opened. */
@@ -59,14 +63,13 @@ static int hello_open(message *m)
     // Sanity check: Don't open in Read/Write mode.
     if (m->COUNT == O_RDWR) {
         fprintf(stderr, "open() was opened in READ_WRITE mode by UID: %d. Bouncing open() request.\n", new_owner.uid);
-        errno = EACCES;
-        return -1;
+        return EACCES;
     }
 
     // Grab the credentials for the new owner.
     if (getnucred(m->USER_ENDPT, &new_owner) != 0) {
         fprintf(stderr, "getnucred failed\n");
-        return -1;
+        return errno;
     }
 
     // If empty...
@@ -77,11 +80,11 @@ static int hello_open(message *m)
         // WRITE_ONLY mode on an empty secret.
         case O_WRONLY:
             printf("Empty Secret opened in WRITE_ONLY mode by UID: %d\n", new_owner.uid);
-            
+
             // Set the owner to be full
             owner = new_owner.uid;
             
-            break;
+            return OK;
 
         // READ_ONLY mode on an empty Secret.
         case O_RDONLY:
@@ -107,10 +110,12 @@ static int hello_open(message *m)
             if (owner == new_owner.uid) {
                 printf("Full Secret opened in READ_ONLY mode by the owner: %d\n", new_owner.uid);
 
+                // Set the Secret to be empty.
+                owner = -1;
 
                 return OK;
             }
-            // Otherwise, the Secret is being read by someone else
+            // If the Secret is being read by SOMEONE ELSE...
             else {
                 printf("Can't read someone else's secret: Full Secret opened in READ_ONLY mode by %d, even though the owner was %d\n", new_owner.uid, owner);
                 return -1;
