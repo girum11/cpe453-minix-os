@@ -1,3 +1,3 @@
-FILES="asgn4.c"
+FILES="secret.h secret.c"
 
-scp $FILES gibssa@falcon.csc.calpoly.edu:~/cpe453/asgn4
+scp $FILES root@192.168.207.128:/usr/src/drivers/secrets
