@@ -4,7 +4,14 @@
 #include <stdlib.h>
 #include <minix/ds.h>
 #include <sys/ucred.h>
+#include <minix/const.h>
 #include "secret.h"
+
+
+// TODO: Why aren't constants these being imported by <minix/const.h>?
+#define O_WRONLY 2
+#define O_RDONLY 4
+#define O_RDWR 6
 
 /*
  * Function prototypes for the hello driver.
@@ -40,25 +47,86 @@ static struct chardriver hello_tab =
 /** Represents the /dev/hello device. */
 static struct device hello_device;
 
+static uid_t owner;
+
 /** State variable to count the number of times the device has been opened. */
 static int open_counter;
 
 static int hello_open(message *m)
 {
-    struct ucred owner;
+    struct ucred new_owner;
 
-    owner.uid = 42;
-
-    if (getnucred(m->USER_ENDPT, &owner) != 0) {
-        perror("getnucred");
+    // Sanity check: Don't open in Read/Write mode.
+    if (m->COUNT == O_RDWR) {
+        fprintf(stderr, "open() was opened in READ_WRITE mode by UID: %d. Bouncing open() request.\n", new_owner.uid);
+        errno = EACCES;
         return -1;
     }
 
-    printf("hello_open() called by UID: %d. Called %d time(s).\n", owner.uid, ++open_counter);
+    // Grab the credentials for the new owner.
+    if (getnucred(m->USER_ENDPT, &new_owner) != 0) {
+        fprintf(stderr, "getnucred failed\n");
+        return -1;
+    }
 
-    printf("and yet, getuid() returned: %d\n", getuid());
+    // If empty...
+    if (owner == -1) {
+
+        switch (m->COUNT) {
+
+        // WRITE_ONLY mode on an empty secret.
+        case O_WRONLY:
+            printf("Empty Secret opened in WRITE_ONLY mode by UID: %d\n", new_owner.uid);
+            
+            // Set the owner to be full
+            owner = new_owner.uid;
+            
+            break;
+
+        // READ_ONLY mode on an empty Secret.
+        case O_RDONLY:
+            fprintf(stderr, "UID %d opened an Empty Secret in READ_ONLY mode.\n", new_owner.uid);
+
+            // do nothing.
+            return OK;
+        // Error state.
+        default:
+            fprintf(stderr, "unknown open() flags: %d", m->COUNT);
+            return -1;
+        }
+    } 
+    // If full...
+    else {
+        switch (m->COUNT) {
+
+        // READ_ONLY mode on a full Secret.
+        case O_RDONLY:
+            
+
+            // If the Secret is being read by the owner...
+            if (owner == new_owner.uid) {
+                printf("Full Secret opened in READ_ONLY mode by the owner: %d\n", new_owner.uid);
 
 
+                return OK;
+            }
+            // Otherwise, the Secret is being read by someone else
+            else {
+                printf("Can't read someone else's secret: Full Secret opened in READ_ONLY mode by %d, even though the owner was %d\n", new_owner.uid, owner);
+                return -1;
+            }
+
+        // WRITE_ONLY mode on a full Secret.
+        case O_WRONLY:
+            fprintf(stderr, "No space left on device\n");
+            return -1;
+
+        // Error state.
+        default:
+            fprintf(stderr, "unknown open() flags: %d", m->COUNT);
+            return -1;
+        }
+    }
 
     return OK;
 }
@@ -69,7 +137,7 @@ static int hello_close(message *UNUSED(m))
     return OK;
 }
 
-static struct device * hello_prepare(dev_t UNUSED(dev))
+static struct device *hello_prepare(dev_t UNUSED(dev))
 {
     hello_device.dv_base = make64(0, 0);
     hello_device.dv_size = make64(strlen(HELLO_MESSAGE), 0);
@@ -188,6 +256,8 @@ static int sef_cb_init(int type, sef_init_info_t *UNUSED(info))
 
 int main(void)
 {
+    owner = -1;
+
     /*
      * Perform initialization.
      */
