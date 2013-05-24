@@ -141,7 +141,7 @@ static int hello_open(message *m)
 
         // Error state.
         default:
-            fprintf(stderr, "unknown open() flags: %d", m->COUNT);
+            fprintf(stderr, "unknown open() flags: %d\n", m->COUNT);
             return -1;
         }
     }
@@ -174,7 +174,7 @@ static int hello_close(message *UNUSED(m))
 static struct device *hello_prepare(dev_t UNUSED(dev))
 {
     hello_device.dv_base = make64(0, 0);
-    hello_device.dv_size = make64(strlen(HELLO_MESSAGE), 0);
+    hello_device.dv_size = make64(strlen(the_secret), 0);
     return &hello_device;
 }
 
@@ -184,7 +184,7 @@ static int hello_transfer(endpoint_t endpt, int opcode, u64_t position,
 {
     int bytes, ret;
 
-    printf("hello_transfer()\n");
+    // printf("hello_transfer()\n");
 
     if (nr_req != 1)
     {
@@ -192,8 +192,10 @@ static int hello_transfer(endpoint_t endpt, int opcode, u64_t position,
         printf("HELLO: vectored transfer request, using first element only\n");
     }
 
-    bytes = strlen(HELLO_MESSAGE) - ex64lo(position) < iov->iov_size ?
-            strlen(HELLO_MESSAGE) - ex64lo(position) : iov->iov_size;
+    bytes = SECRET_SIZE - ex64lo(position) < iov->iov_size ?
+            SECRET_SIZE - ex64lo(position) : iov->iov_size;
+
+    // printf("iov->iov_size: %lu, transfer() bytes: %d\n", iov->iov_size, bytes);
 
     if (bytes <= 0)
     {
@@ -223,6 +225,7 @@ static int hello_transfer(endpoint_t endpt, int opcode, u64_t position,
             break;
 
         default:
+            fprintf(stderr, "Unknown opcode: %d\n", opcode);
             return EINVAL;
     }
     return ret;
@@ -277,7 +280,7 @@ static int sef_cb_init(int type, sef_init_info_t *UNUSED(info))
     open_counter = 0;
     switch(type) {
         case SEF_INIT_FRESH:
-            printf("%s", HELLO_MESSAGE);
+            printf("%s", the_secret);
         break;
 
         case SEF_INIT_LU:
@@ -285,11 +288,11 @@ static int sef_cb_init(int type, sef_init_info_t *UNUSED(info))
             lu_state_restore();
             do_announce_driver = FALSE;
 
-            printf("%sHey, I'm a new version!\n", HELLO_MESSAGE);
+            printf("%sHey, I'm a new version!\n", the_secret);
         break;
 
         case SEF_INIT_RESTART:
-            printf("%sHey, I've just been restarted!\n", HELLO_MESSAGE);
+            printf("%sHey, I've just been restarted!\n", the_secret);
         break;
     }
 
